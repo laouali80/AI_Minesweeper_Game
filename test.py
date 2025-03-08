@@ -1,9 +1,13 @@
 from minesweeper import MinesweeperAI, Sentence
 import random
 
-# add_new_sentence = MinesweeperAI().add_knowledge((1,5), 8)
-# add_new_sentence = MinesweeperAI().add_knowledge((0,7), 2)
+# ai = MinesweeperAI()
+# add_new_sentence = ai.add_knowledge((1,5), 2)
+# add_new_sentence2 = ai.add_knowledge((0,7), 2)
+# ai.make_random_move()
 
+
+# print(add_new_sentence)
 # print(MinesweeperAI().get_neighbors((0,7)))
 
 
@@ -16,6 +20,9 @@ import random
 
 # print(sent1.known_safes().issubset(sent2.known_safes()))
 
-test = {(3,4),(4,7),(7,1)}
+# test = {(3,4),(4,7),(7,1)}
 
-print(random.choice(list(test)))
+# print(random.choice(list(test)))
+
+# print({(1,0),(1,1)}.issubset({(1,0),(1,1)}))
+

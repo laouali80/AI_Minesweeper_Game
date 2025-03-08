@@ -205,9 +205,14 @@ class MinesweeperAI():
 
         # Get the cell's neighbors that are still unknown
         neighbors, count = self.get_neighbors(cell, count)
+
+        # creation of a sentence and add it to the knowledge base
         self.knowledge.append(Sentence(neighbors, count))
         
+        # Loop over the knowledge to derive new knowledge
         self.update_knowledge()
+
+        # print(self.mines)
 
 
 
@@ -238,12 +243,14 @@ class MinesweeperAI():
         return sentence_set, count
     
 
-
+ 
     def update_knowledge(self):
         """Processes known information and derives new conclusions."""
+        
         updated = True
         while updated:
             updated = False
+
             new_safes, new_mines = set(), set()
 
             # Identify known safe and mine cells
@@ -251,10 +258,13 @@ class MinesweeperAI():
                 new_safes.update(sentence.known_safes())
                 new_mines.update(sentence.known_mines())
 
+            # Mark all the new safes cells as safe and update each sentence that contains the cell to safe
             for cell in new_safes:
                 if cell not in self.safes:
                     self.mark_safe(cell)
                     updated = True
+
+            # Mark all the new mines cells as mine and update each sentence that contains the cell to mine
             for cell in new_mines:
                 if cell not in self.mines:
                     self.mark_mine(cell)
@@ -266,12 +276,15 @@ class MinesweeperAI():
                 for s2 in self.knowledge:
                     if s1 == s2:
                         continue
+
+                    # if s1 is a subset of s2 e.g: s1={a,b}  s2={a,b,c,d}; we derive a new sentence from the difference of the sets and counts
                     if s1.cells.issubset(s2.cells):
                         inferred_sentences.append(Sentence(s2.cells - s1.cells, s2.count - s1.count))
+                    # Vice versa
                     elif s2.cells.issubset(s1.cells):
                         inferred_sentences.append(Sentence(s1.cells - s2.cells, s1.count - s2.count))
             
-            # Add new inferences
+            # Add new inferences to the knowledge base
             for sentence in inferred_sentences:
                 if sentence not in self.knowledge and sentence.cells:
                     self.knowledge.append(sentence)
@@ -306,13 +319,69 @@ class MinesweeperAI():
             2) are not known to be mines
         """
 
-        possible_moves = []
-        for i in range(self.height):
-            for j in range(self.width):
+        number_mines = 8
+        undiscovered_mines = number_mines - len(self.mines)
+
+        # Get the number of unexplored cells
+        unexplored_cells = (self.height * self.width) - (len(self.moves_made) + len(self.mines))
+
+        
+        # If no unexplored cells remain, return None
+        if unexplored_cells == 0:
+            return None
+        
+        # Basic probability of any unexplored cell being a mine
+        unexplored_cells_probability = undiscovered_mines / unexplored_cells
+
+        # Possible moves on the board excluding known moves and mines
+        possible_moves = dict()
+
+        # get all the safe cells
+        for i in range(self.width):
+            for j in range(self.height):
+                # only add the cell to possible_move if the cell is not in moves_made and not consider as mines
                 if (i, j) not in self.moves_made and (i, j) not in self.mines:
-                    possible_moves.append((i, j))
+
+                    # adding the cell to the possible_moves dictionary with the unexplored_cells_probality 
+                    possible_moves[(i,j)] = unexplored_cells_probability
         
-        if possible_moves:
-            return random.choice(possible_moves)
+        # If this is the AI's first move (no knowledge yet), choose randomly
+        if possible_moves and not self.knowledge:  
+            return random.choice(list(possible_moves.keys()))
         
-        return None
+
+        # Improve move selection using knowledge
+        else:
+            # we go through each sentence cells and calculate each cell probability being a mine
+            for sentence in self.knowledge:
+                num_cells = len(sentence.cells)
+                count = sentence.count
+
+                # Probability of each cell being a mine in a sentence
+                if num_cells > 0:
+                    sentence_cells_probability = count / num_cells
+                else:
+                    continue
+
+                # loop over each cell of the sentence
+                for cell in sentence.cells:
+                    # checks if the sentence_cells_probability is smaller then the unexplored_cells_probability(probality of each unexplored cell)
+                    # Only update probability if cell is still in possible_moves
+                    if cell in possible_moves and possible_moves[cell] > sentence_cells_probability:
+                        # if so change the probability of the cell being a mine
+                        possible_moves[cell] = sentence_cells_probability
+                  
+            # lowest_probability = 1
+            # best_move = None
+            # for move in possible_moves:
+            #     # get the minimun probality 
+            #     probability = min(lowest_probability, possible_moves[move])
+            #     if probability <= lowest_probability :
+            #         best_move = move
+            #         lowest_probability = probability    
+
+
+            # Select the move with the lowest probability
+            best_move = min(possible_moves, key=possible_moves.get)
+
+            return best_move
